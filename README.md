@@ -19,3 +19,5 @@
       systemctl start gluster-blockd
       systemctl start glusterd
       systemctl enable glusterd
+
+iscsiadm --mode node --targetname iqn.2016-12.org.gluster-block:7f2ce50b-ddc2-42a7-ae6e-ec866532ab8c --portal 192.168.1.200:3260 --login
