@@ -12,7 +12,7 @@
       yum install git -y
       git clone https://github.com/gluster/gluster-block.git
       cd gluster-block/
-      yum install targetcli tcmu-runner
+      yum install gluster-block
       ./autogen.sh && ./configure --enable-tirpc=no && make -j install
       cat /etc/sysconfig/gluster-blockd
       systemctl daemon-reload
