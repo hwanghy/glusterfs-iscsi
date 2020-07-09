@@ -4,41 +4,69 @@
 - Config IP.
 - Add hosts file.
 - Check time.
-- Disable firewall (or allow filewall rules).
-- Install packages:
-      yum install centos-release-gluster -y
-      yum install epel-release -y
-      yum install glusterfs-server -y
-      systemctl start glusterd
-      systemctl enable glusterd
-      yum install gcc autoconf automake make file libtool libuuid-devel json-c-devel glusterfs-api-devel glusterfs-server tcmu-runner targetcli
-      yum install git -y
-      git clone https://github.com/gluster/gluster-block.git
-      cd gluster-block/
-      yum install gluster-block
-      ./autogen.sh && ./configure --enable-tirpc=no && make -j install
-      cat /etc/sysconfig/gluster-blockd
-      systemctl daemon-reload
-      reboot
-      systemctl start gluster-blockd
-      systemctl start glusterd
-      systemctl enable glusterd
-      ----------------------
-      configshell-fb/configshell/__init__.py 
-      if __name__ == 'configshell-fb':
-    from warnings import warn
-    warn("'configshell' package name for configshell-fb is deprecated, please"
-         + " instead import 'configshell_fb'", UserWarning, stacklevel=2)
+2. Ansible setup: 
+- yum install epel-release -y
+- yum install git -y
+- yum install ansible -y
+- vi /etc/ansible/hosts
+	[servers]
+      gluster01 ansible_ssh_host=<ip> 
+      gluster02 ansible_ssh_host=<ip>
+      ....
+- ssh-keygen
+- ssh-copy-id <ip>
 
-from .console import Console
-from .log import Log
-from .node import ConfigNode, ExecutionError
-from .prefs import Prefs
-from .shell import ConfigShell
+3. Run ansible:
+- git clone https://github.com/gluster/gluster-block.git
+- cd gluster-block/ansible
+- vi playbook.yml
+- delete all initiator role
+- ansible-playbook playbook.yml.
 
-__version__ = '1.1.25'
-__url__ = 'http://github.com/open-iscsi/configshell-fb'
-__description__ = 'A framework to implement simple but nice CLIs.'
-__license__ = 'Apache 2.0'
+4. Setup gluster store:
+- mkfs.xfs /dev/sdb
+- mkdir -p /data/brick1
+- echo "/dev/sdb /data/brick1 defaults 0 0" >> /etc/fstab
+- mount -a
+- gluster peer probe <hostname>
+- gluster volume create hosting-volume replica 3 gluster01:/data/brick1/brick gluster02:/data/brick1/brick gluster03:/data/brick1/brick
+- gluster vol set hosting-volume group gluster-block
+- gluster volume start hosting-volume
+- gluster-block create hosting-volume/block-volume ha 3 192.168.1.11,192.168.1.12,192.168.1.13 1GiB
+- gluster-block list hosting-volume
+- gluster-block info hosting-volume/block-volume
 
-iscsiadm --mode node --targetname iqn.2016-12.org.gluster-block:7f2ce50b-ddc2-42a7-ae6e-ec866532ab8c --portal 192.168.1.200:3260 --login
+5. Setup client:
+- yum install iscsi-initiator-utils device-mapper-multipath
+- systemctl start iscsid.service
+- systemctl enable iscsid.service
+- lsblk
+- modprobe dm_multipath
+- mpathconf --enable
+- vi /etc/multipathd.conf
+# LIO iSCSI
+devices {
+        device {
+                vendor "LIO-ORG"
+                user_friendly_names "yes" # names like mpatha
+                path_grouping_policy "failover" # one path per group
+                path_selector "round-robin 0"
+                failback immediate
+                path_checker "tur"
+                prio "const"
+                no_path_retry 120
+                rr_weight "uniform"
+        }
+}
+- systemctl restart multipathd
+- systemctl enable multipathd
+
+Discovery ...
+# iscsiadm -m discovery -t st -p 192.168.1.11
+
+Login ...
+# iscsiadm -m node -T "iqn.2016-12.org.gluster-block:aafea465-9167-4880-b37c-2c36db8562ea" -l
+
+# lsblk (note the new devices, let's say sdb, sdc and sdd multipath to mpatha)
+# mkfs.xfs /dev/mapper/mpatha
+# mount /dev/mapper/mpatha /data
