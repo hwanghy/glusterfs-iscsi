@@ -26,7 +26,7 @@
 4. Setup gluster store:
 - mkfs.xfs /dev/sdb
 - mkdir -p /data/brick1
-- echo "/dev/sdb /data/brick1 defaults 0 0" >> /etc/fstab
+- echo "/dev/sdb /data/brick1 xfs defaults 0 0" >> /etc/fstab
 - mount -a
 - gluster peer probe <hostname>
 - gluster volume create hosting-volume replica 3 gluster01:/data/brick1/brick gluster02:/data/brick1/brick gluster03:/data/brick1/brick
