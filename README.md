@@ -70,3 +70,30 @@ Login ...
 # lsblk (note the new devices, let's say sdb, sdc and sdd multipath to mpatha)
 # mkfs.xfs /dev/mapper/mpatha
 # mount /dev/mapper/mpatha /data
+
+
+On the Server/Target node[s] to resize the block volume
+Resizing 1G gluster block volume 'block-volume' to 2G
+# gluster-block modify hosting-volume/block-volume size 2GiB
+IQN: iqn.2016-12.org.gluster-block:aafea465-9167-4880-b37c-2c36db8562ea
+SIZE: 2.0 GiB
+SUCCESSFUL ON: 192.168.1.11 192.168.1.12 192.168.1.13
+RESULT: SUCCESS
+On Initiator side, commands to refresh the device after block volume resizing
+Rescan the devices
+# iscsiadm -m node -R
+
+Rescan the multipath
+# multipathd -k'resize map mpatha'
+
+Grow the filesystem
+# xfs_growfs  /mnt
+Deleting the block volume
+On client node
+# umount /mnt
+# iscsiadm -m node -u
+
+On the server node
+# gluster-block delete hosting-volume/block-volume
+SUCCESSFUL ON: 192.168.1.11 192.168.1.12 192.168.1.13
+RESULT: SUCCESS
