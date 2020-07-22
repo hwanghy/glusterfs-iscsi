@@ -29,7 +29,11 @@
 - echo "/dev/sdb /data/brick1 xfs defaults 0 0" >> /etc/fstab
 - mount -a
 - gluster peer probe <hostname>
+# Create volume type Distributed Replicate
 - gluster volume create hosting-volume replica 3 gluster01:/data/brick1/brick gluster02:/data/brick1/brick gluster03:/data/brick1/brick
+# Create volume type Replicate over 1 brick
+- gluster volume create hosting-volume replica 4 transport tcp gluster01:/data/brick1/brick gluster02:/data/brick1/brick gluster01:/data/brick2/brick gluster02:/data/brick2/brick force
+------------------------------------------------------------
 - gluster vol set hosting-volume group gluster-block
 - gluster volume start hosting-volume
 - gluster-block create hosting-volume/block-volume ha 3 192.168.1.11,192.168.1.12,192.168.1.13 1GiB
